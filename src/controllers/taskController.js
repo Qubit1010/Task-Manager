@@ -6,7 +6,6 @@ const Task = require("../models/taskModel");
 // @access Public
 const createTask = asyncHandler(async (req, res) => {
   const { description, completed } = req.body;
-
   if (!description || !completed) {
     res.status(400);
     throw new Error("Please add all fields");
@@ -17,9 +16,6 @@ const createTask = asyncHandler(async (req, res) => {
     completed: completed,
   });
 
-  // console.log(task);
-  // res.status(200).json(task);
-
   if (task) {
     res.status(201).json(task);
   } else {
@@ -28,26 +24,60 @@ const createTask = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Update goals
+// @route PUT /api/goals
+// @access Private
+const updateTask = asyncHandler(async (req, res) => {
+  const updates = Object.keys(req.body);
+  const allowedUpdates = ["name", "email", "password", "age"];
+  const isValidOperation = updates.every((update) =>
+    allowedUpdates.includes(update)
+  );
+
+  if (!isValidOperation) {
+    return res.status(400).send({ error: "Invalid updates!" });
+  }
+  
+  const task = await Task.findById(req.params.id);
+  if (!task) {
+    res.status(400);
+    throw new Error("Task not found");
+  }
+  // const task = await Task.findById(req.user.id)
+  // Check for user
+  // if (!req.user) {
+  //   res.status(401)
+  //   throw new Error('User not found')
+  // }
+  // Make sure the logged in user matches the goal user
+  // if (goal.user.toString() !== req.user.id) {
+  //   res.status(401)
+  //   throw new Error('User not authorized')
+  // }
+  const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  res.status(200).json(updatedTask);
+});
+
 // @desc Get task Data
 // @route GET /tasks/getTasks
 // @access Private
 const getTask = asyncHandler(async (req, res) => {
   const tasks = await Task.find();
-
-  res.status(200).json(tasks);
+  try {
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500);
+    throw new Error("User not found!");
+  }
 });
-
 
 //@desc Get task Data with id
 // @route GET /tasks/me
 // @access Private
 const getTaskId = asyncHandler(async (req, res) => {
-  // const _id = req.params.id
   const { _id, description, completed } = await Task.findById(req.params.id);
-
-  // const user = await User.findById(_id);
-  // const user = await User.find()
-  // res.status(200).json(user)
   try {
     res.status(200).json({
       id: _id,
@@ -60,17 +90,15 @@ const getTaskId = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Get task
+// @desc Delete task
 // @route DELETE /tasks/:id
 // @access Private
 const deleteTask = asyncHandler(async (req, res) => {
-  const task = await Task.findByIdAndDelete(req.params.id)
-
+  const task = await Task.findByIdAndDelete(req.params.id);
   if (!task) {
-    res.status(400)
-    throw new Error('task not found')
+    res.status(400);
+    throw new Error("task not found");
   }
-
   // Check for user
   // if (!req.user) {
   //   res.status(401)
@@ -82,8 +110,7 @@ const deleteTask = asyncHandler(async (req, res) => {
   //   res.status(401)
   //   throw new Error('User not authorized')
   // }
+  res.status(200).json({ id: req.params.id });
+});
 
-  res.status(200).json({ id: req.params.id })
-})
-
-module.exports = { createTask, getTask, getTaskId, deleteTask};
+module.exports = { createTask, updateTask, getTask, getTaskId, deleteTask };

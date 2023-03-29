@@ -73,16 +73,47 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc Update users
+// @route PUT /users
+// @access Private
+const updateUser = asyncHandler(async (req, res) => {
+  const updates = Object.keys(req.body);
+  const allowedUpdates = ["name", "email", "password", "age"];
+  const isValidOperation = updates.every((update) =>
+    allowedUpdates.includes(update)
+  );
+
+  if (!isValidOperation) {
+    return res.status(400).send({ error: "Invalid updates!" });
+  }
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(400);
+    throw new Error("user not found");
+  }
+  // const task = await Task.findById(req.user.id)
+  // Check for user
+  // if (!req.user) {
+  //   res.status(401)
+  //   throw new Error('User not found')
+  // }
+  // Make sure the logged in user matches the goal user
+  // if (goal.user.toString() !== req.user.id) {
+  //   res.status(401)
+  //   throw new Error('User not authorized')
+  // }
+  const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  res.status(200).json(updatedUser);
+});
+
 // @desc Get User Data
 // @route GET /users/me
 // @access Private
 const getMe = asyncHandler(async (req, res) => {
-  // const _id = req.params.id
   const { _id, name, email } = await User.findById(req.params.id);
-
-  // const user = await User.findById(_id);
-  // const user = await User.find()
-  // res.status(200).json(user)
   try {
     res.status(200).json({
       id: _id,
@@ -105,5 +136,6 @@ const generateToken = (id) => {
 module.exports = {
   registerUser,
   loginUser,
+  updateUser,
   getMe,
 };
