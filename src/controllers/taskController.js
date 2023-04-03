@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Task = require("../models/taskModel");
+const User = require("../models/userModel");
 
 // @desc Create New Task
 // @route POST /tasks
@@ -14,6 +15,7 @@ const createTask = asyncHandler(async (req, res) => {
   const task = await Task.create({
     description: description,
     completed: completed,
+    user: req.user.id,
   });
 
   if (task) {
@@ -29,7 +31,7 @@ const createTask = asyncHandler(async (req, res) => {
 // @access Private
 const updateTask = asyncHandler(async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = ["name", "email", "password", "age"];
+  const allowedUpdates = ["description", "completed"];
   const isValidOperation = updates.every((update) =>
     allowedUpdates.includes(update)
   );
@@ -37,23 +39,24 @@ const updateTask = asyncHandler(async (req, res) => {
   if (!isValidOperation) {
     return res.status(400).send({ error: "Invalid updates!" });
   }
-  
-  const task = await Task.findById(req.params.id);
-  if (!task) {
-    res.status(400);
-    throw new Error("Task not found");
+
+  // if (!task) {
+    //   res.status(400);
+    //   throw new Error("Task not found");
+    // }
+    // const user = await Task.findById(req.user.id)
+    // Check for user
+    const task = await Task.findById(req.params.id);
+
+  if (!req.user) {
+    res.status(401);
+    throw new Error("User not found");
   }
-  // const task = await Task.findById(req.user.id)
-  // Check for user
-  // if (!req.user) {
-  //   res.status(401)
-  //   throw new Error('User not found')
-  // }
   // Make sure the logged in user matches the goal user
-  // if (goal.user.toString() !== req.user.id) {
-  //   res.status(401)
-  //   throw new Error('User not authorized')
-  // }
+  if (task.user.toString() !== req.user.id) {
+    res.status(401);
+    throw new Error("User not authorized");
+  }
   const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
@@ -64,7 +67,7 @@ const updateTask = asyncHandler(async (req, res) => {
 // @route GET /tasks/getTasks
 // @access Private
 const getTask = asyncHandler(async (req, res) => {
-  const tasks = await Task.find();
+  const tasks = await Task.find({ user: req.user.id });
   try {
     res.status(200).json(tasks);
   } catch (error) {
@@ -77,13 +80,11 @@ const getTask = asyncHandler(async (req, res) => {
 // @route GET /tasks/me
 // @access Private
 const getTaskId = asyncHandler(async (req, res) => {
-  const { _id, description, completed } = await Task.findById(req.params.id);
+  // const { _id, description, completed } = await Task.findById(req.params.id);
+  
+  const tasks = await Task.findById({ _id: req.params.id, user: req.user.id });
   try {
-    res.status(200).json({
-      id: _id,
-      description,
-      completed,
-    });
+    res.status(200).json(tasks);
   } catch (error) {
     res.status(500);
     throw new Error("User not found!");
@@ -94,7 +95,11 @@ const getTaskId = asyncHandler(async (req, res) => {
 // @route DELETE /tasks/:id
 // @access Private
 const deleteTask = asyncHandler(async (req, res) => {
-  const task = await Task.findByIdAndDelete(req.params.id);
+  // const task = await Task.findByIdAndDelete(req.params.id);
+  const task = await Task.findOneAndDelete({
+    _id: req.params.id,
+    user: req.user.id,
+  });
   if (!task) {
     res.status(400);
     throw new Error("task not found");
