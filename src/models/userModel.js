@@ -25,6 +25,9 @@ const userSchema = mongoose.Schema(
       type: Number,
       required: [true, "Please add an age"],
     },
+    avatar: {
+      type: Buffer,
+    },
   },
   {
     timestamps: true,
